@@ -1,47 +1,34 @@
-from rest_framework import status
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
+from django.core.serializers import serialize
 from snippets.models import Snippet
 from snippets.serializers import SnippetSerializer
-
-@api_view(['GET', 'POST'])
-def snippet_list(request):
+from rest_framework import mixins
+from rest_framework import generics
+class SnippetList(mixins.ListModelMixin,mixins.CreateModelMixin, generics.GenericAPIView):
     """
-    列出所有的snippets，或者创建一个新的snippet。
+    列出所有的snippets或者創建一個新的snippet
     """
-    if request.method == 'GET':
-        snippets = Snippet.objects.all()
-        serializer = SnippetSerializer(snippets, many=True)
-        return Response(serializer.data) #drf提供轉為JSON格式
 
-    elif request.method == 'POST':
-        serializer = SnippetSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    queryset = Snippet.objects.all()
+    serializer_class = SnippetSerializer
 
-@api_view(['GET', 'PUT', 'DELETE'])
-def snippet_detail(request, pk):
+    def get(self,request,*args,**kwargs):
+        return self.list(request,*args,**kwargs)
+
+    def post(self,request,*args,**kwargs):
+        return self.create(request,*args,**kwargs)
+
+class SnippetDetail(mixins.RetrieveModelMixin,mixins.UpdateModelMixin,mixins.DestroyModelMixin,generics.GenericAPIView):
     """
-    获取，更新或删除一个snippet实例。
+    檢索某一個snippet，或者更新、刪除
     """
-    try:
-        snippet = Snippet.objects.get(pk=pk)
-    except Snippet.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+    queryset = Snippet.objects.all()
+    serializer_class = SnippetSerializer
 
-    if request.method == 'GET':
-        serializer = SnippetSerializer(snippet)
-        return Response(serializer.data)
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
 
-    elif request.method == 'PUT':
-        serializer = SnippetSerializer(snippet, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
 
-    elif request.method == 'DELETE':
-        snippet.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
